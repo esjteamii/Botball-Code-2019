@@ -1,0 +1,14 @@
+# Botball-Code-2019
+}
+int main() {
+ create_connect();
+ set_create_distance(0);
+ set_create_total_angle(0);
+ make_drive_script(500, 500); // script to move 0.5m at 500 mm/sec
+ msleep(500); 
+ RUN_SCRIPT;
+ msleep(1000); // allow time for the script to finish 
+ printf(" distance traveled = %d mm\n", get_create_distance());
+ printf(" angle turned = %d degrees\n", get_create_total_angle());
+ create_disconnect();
+} 
