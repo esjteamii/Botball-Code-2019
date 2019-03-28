@@ -1,0 +1,649 @@
+//Created on Fri September 14 2018
+#include <kipr/botball.h>
+
+//Code for the small robot
+
+//Port number variables for the motors, servos, and sensors
+int leftmotor = 0;
+int rightmotor = 1;
+int armservo = 0;
+int clawservo = 1;
+int patservo = 2;
+int button = 0;
+int light = 0;
+int ltophat = 1;
+int rtophat = 2;
+int etsensor = 3;
+
+//Servo position variables
+int armdown = 1825;
+int armup = 500;
+int armback = 100;
+int clawopen = 1900;
+int clawclosed = 750;
+int patup = 1400;
+int patdown = 100;
+
+int i;//This is used in 'for' loops
+
+//Function Declarations
+void move(int speed, int msecs);
+void turn(int speed, int msecs);
+void raisearm();
+void lowerarm();//Also opens the claw
+void pusharm();
+void collect();
+void openclaw();
+void closeclaw();
+void patunit();
+void slowservo(int port, int pos);
+void linefollow();
+void pause(int msecs);
+void compcodepart1();
+
+int rmotoroffset = 32;
+
+//Cm to tick conversion: 1 cm = 80 ticks
+
+int main()
+{   
+    //wait_for_light(light);
+    shut_down_in(119);
+    enable_servos();
+
+    //Start of actions--------------------------------
+    compcodepart1();
+    
+    //Align with pipe and black tape
+    move(-1500, 2000);
+    while(analog(ltophat) < 3000)
+    {
+        mav(leftmotor, -1500);
+        mav(rightmotor, -1500);
+    }
+    turn(1500, 600);
+    move(-1500, 1100);
+    move(-500, 750);
+    while(analog(ltophat) < 3000)
+    {
+        mav(leftmotor, -1000);
+        mav(rightmotor, 1000);
+    }
+    while(analog(ltophat) > 3000)
+    {
+        mav(leftmotor, 1500);
+        mav(rightmotor, 1500);
+    }
+    move(1500, 500);
+    while(analog(ltophat) < 3200)
+    {
+        mav(leftmotor, 1000);
+        mav(rightmotor, -1000);
+    }
+    pause(100);
+    lowerarm();
+    openclaw();
+    
+    //Plow cubes into left hospital
+    lowerarm();
+    while(analog(ltophat) < 3300 || analog(rtophat) < 3300)
+    {
+        if(analog(ltophat) < 3000)
+        {
+            mav(leftmotor, 1500);
+            mav(rightmotor, 1300);
+        }
+        else
+        {
+            mav(leftmotor, 1300);
+            mav(rightmotor, 1500);
+        }
+    }
+    move(1500, 250);
+    move(-1500, 1000);
+    
+    //Move and grab cube on starting tape
+    lowerarm();//temporary
+    turn(-1375, 1000);
+    move(1500, 1200);
+    turn(500, 300);
+    set_servo_position(clawservo, 1100);
+    msleep(500);
+    raisearm();
+    
+    //Set the cube in the flood zone
+    turn(-1500, 1000);
+    move(1500, 900);
+    set_servo_position(armservo, armdown);
+    pause(500);
+    openclaw();
+    move(-500, 250);
+    raisearm();
+    
+    //Go grab the firetruck
+    turn(-1000, 1550);
+    set_servo_position(armservo, armdown);
+    move(1500, 2100);
+    turn(500, 500);
+    set_servo_position(clawservo, 1000);
+    msleep(250);
+    raisearm();
+    
+    //Place firetruck in flood zone to end run
+    turn(1500, 850);
+    move(1500, 1700);
+    set_servo_position(armservo, armdown);
+    msleep(500);
+    openclaw();
+    
+    /* SCRAPPED CODE
+    //Grab and place first group of cubes in starting box
+    for(i = 0; i < 460; i++)
+    {
+        if(analog(ltophat) < 3000)
+        {
+            mav(leftmotor, 1500);
+            mav(rightmotor, 1300);
+        }
+        else
+        {
+            mav(leftmotor, 1300);
+            mav(rightmotor, 1500);
+        }
+    }
+    pause(100);
+    turn(200, 200);
+    move(250, 1500);
+    closeclaw();
+    while(analog(rtophat) < 3000)
+    {
+        mav(leftmotor, -1000);
+        mav(rightmotor, 1000);
+    }
+    while(analog(ltophat) < 3000)
+    {
+        mav(leftmotor, 1500);
+        mav(rightmotor, 1500);
+    }
+    move(1500, 1400);
+    slowservo(clawservo, clawopen);
+    turn(-300, 300);
+    raisearm();
+    
+    //Grab and place second group of cubes in starting box
+    while(analog(ltophat) < 3000)
+    {
+        mav(leftmotor, 1000);
+        mav(rightmotor, -1000);
+    }
+    turn(1000, 600);
+    lowerarm();
+    move(1000, 500);
+    turn(100, 1000);
+    closeclaw();
+    while(analog(rtophat) < 3000)
+    {
+        mav(leftmotor, 1500);
+        mav(rightmotor, -1500);
+    }
+    while(analog(rtophat) > 3000)
+    {
+        mav(leftmotor, 1500);
+        mav(rightmotor, -1500);
+    }
+    turn(750, 1000);
+    slowservo(clawservo, clawopen);
+    turn(-300, 300);
+    raisearm();
+    
+    //Get out of the way and finish the run
+    move(-1500, 750);
+    turn(1500, 400);
+    move(-1500, 2000);
+    
+    /*
+    //Grab fireman
+    while(analog(ltophat) < 3000)
+    {
+        mav(leftmotor, 1000);
+        mav(rightmotor, -1000);
+    }
+    pause(200);
+    turn(-500, 250);
+    set_servo_position(armservo, 1750);
+    move(1500, 1500);
+    turn(500, 500);
+    set_servo_position(clawservo, 1200);
+    msleep(250);
+    set_servo_position(armservo, armup);
+    msleep(750);
+    
+    //Put fireman in flood zone
+    move(-1000, 500);
+    while(analog(rtophat) < 3000)
+    {
+        mav(leftmotor, 1500);
+        mav(rightmotor, -1500);
+    }
+    turn(-1000, 700);
+    move(1500, 1700);
+    set_servo_position(armservo, armdown);
+    msleep(500);
+    openclaw();
+    msleep(250);
+    raisearm();
+    msleep(250);
+    set_servo_position(clawservo, clawclosed);
+    
+    //Push rest of cubes into hospital
+    move(1000, 500);
+    while(analog(ltophat) < 3000)
+    {
+        mav(leftmotor, -1000);
+        mav(rightmotor, 1000);
+    }
+    move(-1000, 750);
+    turn(-750, 750);
+    move(1500, 500);
+    turn(1000, 800);
+    lowerarm();
+    while(analog(ltophat) < 3300 || analog(rtophat) < 3300)
+    {
+        if(analog(ltophat) < 3000)
+        {
+            mav(leftmotor, 1500);
+            mav(rightmotor, 1300);
+        }
+        else
+        {
+            mav(leftmotor, 1300);
+            mav(rightmotor, 1500);
+        }
+    }
+    move(1000, 500);
+    while(analog(ltophat) < 3000)
+    {
+        mav(leftmotor, -1000);
+        mav(rightmotor, -1000);
+    }
+    pause(10);
+    raisearm();
+    
+    //Grab firetruck
+    turn(-1000, 600);
+    lowerarm();
+    move(1500, 1000);
+    while(analog(ltophat) < 3000)
+    {
+        mav(leftmotor, 1000);
+        mav(rightmotor, 1000);
+    }
+    turn(500, 500);
+    set_servo_position(clawservo, 1100);
+    msleep(500);
+    raisearm();
+    turn(-1500, 1300);
+    move(1500, 1800);
+    lowerarm();
+    pause(500);
+    openclaw();
+    
+    //*/
+    pause(50);
+    disable_servos();
+    return 0;
+}
+
+void move(speed, msecs)
+{
+    if(speed < 0)
+    {
+        mav(leftmotor, speed);
+        mav(rightmotor, speed + rmotoroffset);
+        msleep(msecs);
+        pause(50);
+    }
+    else if(speed > 0)
+    {
+        mav(leftmotor, speed);
+        mav(rightmotor, speed - rmotoroffset);
+        msleep(msecs);
+        pause(50);
+    }
+}
+
+void turn(speed, msecs)
+{
+    mav(leftmotor, speed);
+    mav(rightmotor, -speed);
+    msleep(msecs);
+    pause(10);
+}
+
+void raisearm()
+{
+    set_servo_position(armservo, armup);
+    msleep(500);
+}
+
+void lowerarm()
+{
+    if(get_servo_position(armservo) < 600)
+    {
+        set_servo_position(armservo, armdown);
+        msleep(50);
+        openclaw();
+        msleep(100);
+    }
+    else if(get_servo_position(armservo) >= 600)
+    {
+        set_servo_position(clawservo, clawopen);
+        msleep(100);
+        set_servo_position(armservo, armdown);
+        msleep(250);
+    }
+}
+
+void collect()
+{
+    closeclaw();
+    set_servo_position(armservo, armback);
+    msleep(750);
+    slowservo(clawservo, 1300);
+    pause(250);
+    set_servo_position(armservo, 200);
+    msleep(100);
+    set_servo_position(armservo, armback);
+    msleep(100);
+    set_servo_position(armservo, 200);
+    msleep(100);
+    set_servo_position(armservo, armback);
+    msleep(500);
+    set_servo_position(clawservo, clawclosed);
+    msleep(100);
+    set_servo_position(armservo, armup);
+    msleep(250);
+}
+
+void openclaw()
+{
+    set_servo_position(clawservo, clawopen);
+    msleep(200);
+}
+//This claw close function is built to close onto puffballs, not larger objects
+void closeclaw()
+{
+    slowservo(clawservo, clawclosed);
+    msleep(200);
+}
+
+void patunit()
+{
+    set_servo_position(armservo, 700);
+    msleep(100);
+    set_servo_position(patservo, patdown);
+    msleep(300);
+    set_servo_position(patservo, patup);
+    msleep(300);
+}
+
+void slowservo(port, pos)
+{
+    pause(100);
+    if(get_servo_position(port) < pos)
+    {
+        for(i = get_servo_position(port); i < pos; i = i + 8)
+        {
+            set_servo_position(port, i);
+            msleep(10);
+        }
+    }
+    else if(get_servo_position(port) > pos)
+    {
+        for(i = get_servo_position(port); i > pos; i = i - 8)
+        {
+            set_servo_position(port, i);
+            msleep(10);
+        }
+    }
+}
+
+//Less than 1500 means white, greater means black (or darker color)
+void linefollow()
+{
+    while(digital(0) == 0)
+    {
+        if(analog(1) < 1500 && analog(2) < 1500)
+        {
+            mav(leftmotor, 1000);
+            mav(rightmotor, 1000);
+        }
+        else if(analog(1) < 1500 && analog(2) > 1500)
+        {
+            mav(leftmotor, 750);
+            mav(rightmotor, -250);
+        }
+        else if(analog(1) > 1500 && analog(2) < 1500)
+        {
+            mav(leftmotor, -250);
+            mav(rightmotor, 750);
+        }
+        else
+        {
+            mav(leftmotor, 500);
+            mav(rightmotor, 500);
+        }
+    }
+}
+
+void pause(msecs)
+{
+    freeze(leftmotor);
+    freeze(rightmotor);
+    msleep(msecs);
+}
+
+void compcodepart1()//----------------------------------------------
+{
+    //*
+    //Moves until fire station black tape
+    move(1500, 1000);
+    while(analog(1) < 3000)
+    {
+        mav(leftmotor, 1500);
+        mav(rightmotor, 1500 - rmotoroffset);
+    }
+    pause(50);
+
+    //Turns and aligns with pipe
+    move(-1500, 200);
+    turn(1500, 600);
+    move(-1500, 750);
+    move(-500, 500);
+
+    //Goes until black line
+    turn(1000, 100);
+    while(analog(ltophat) < 3000)
+    {
+        mav(leftmotor, 1500);
+        mav(rightmotor, 1500);
+    }
+
+    //Turn and line up using both tophats
+    turn(-1500, 450);
+    while(analog(rtophat) < 3000)
+    {
+        mav(leftmotor, 1000);
+        mav(rightmotor, 1000);
+    }
+    move(1500, 1000);
+    while(analog(ltophat) < 3000 || analog(rtophat) < 3000)
+    {
+        if(analog(ltophat) < 3000)
+        {
+            mav(leftmotor, 750);
+            mav(rightmotor, 0);
+        }
+        else
+        {
+            mav(leftmotor, 0);
+            mav(rightmotor, 750);
+        }
+    }
+
+    //Grabs the first group of puffballs
+    turn(1000, 700);
+    while(analog(ltophat) < 3000)
+    {
+        mav(leftmotor, -500);
+        mav(rightmotor, 500);
+    }
+    turn(1000, 500);
+    lowerarm();
+    move(500, 200);
+    turn(250, 1000);
+    collect();
+    
+    //Moves toward and grabs second groups of puffballs
+    turn(-1000, 500);
+    move(1000, 750);
+    turn(1500, 700);
+    set_servo_position(armservo, 1400);
+    msleep(500);
+    while(analog(etsensor) < 2800)
+    {
+        mav(leftmotor, -250);
+        mav(rightmotor, 250);
+    }
+    turn(-500, 250);
+    for(i = 0; i < 350; i++)
+    {
+        if(analog(etsensor) < 2800)
+        {
+            mav(leftmotor, 1500);
+            mav(rightmotor, 1000);
+        }
+        else if(analog(etsensor) > 2800)
+        {
+            mav(leftmotor, 1000);
+            mav(rightmotor, 1500);
+        }
+    }
+    set_servo_position(armservo, 1550);
+    msleep(150);
+    turn(-250, 500);
+    lowerarm();
+    move(500, 600);
+    turn(250, 500);
+    collect();
+    
+    //Follows pipe to third group and grabs it
+    set_servo_position(armservo, 1400);
+    msleep(300);
+    for(i = 0; i < 600; i++)
+    {
+        if(analog(etsensor) < 2800)
+        {
+            mav(leftmotor, 1500);
+            mav(rightmotor, 1250);
+        }
+        else if(analog(etsensor) > 2800)
+        {
+            mav(leftmotor, 1250);
+            mav(rightmotor, 1500);
+        }
+    }
+    set_servo_position(armservo, 1550);
+    msleep(200);
+    turn(-250, 500);
+    lowerarm();
+    move(500, 500);
+    turn(250, 500);
+    set_servo_position(armservo, 1800);
+    collect();
+    patunit();
+    
+    //Follows pipe to fourth group and grabs it
+    set_servo_position(armservo, 1400);
+    msleep(300);
+    for(i = 0; i < 750; i++)
+    {
+        if(analog(etsensor) < 2800)
+        {
+            mav(leftmotor, 1500);
+            mav(rightmotor, 500);
+        }
+        else if(analog(etsensor) > 2800)
+        {
+            mav(leftmotor, 1250);
+            mav(rightmotor, 1500);
+        }
+    }
+    set_servo_position(armservo, 1550);
+    msleep(150);
+    turn(-100, 100);
+    openclaw();
+    turn(-250, 500);
+    lowerarm();
+    move(500, 500);
+    turn(250, 500);
+    collect();
+    patunit();
+
+    //Follows pipe to fifth group
+    set_servo_position(armservo, 1400);
+    msleep(300);
+    for(i = 0; i < 600; i++)
+    {
+        if(analog(etsensor) < 2800)
+        {
+            mav(leftmotor, 1500);
+            mav(rightmotor, 1250);
+        }
+        else if(analog(etsensor) > 2800)
+        {
+            mav(leftmotor, 1250);
+            mav(rightmotor, 1500);
+        }
+    }
+    set_servo_position(armservo, 1550);
+    msleep(150);
+    turn(-100, 100);
+    openclaw();
+    turn(-250, 500);
+    lowerarm();
+    move(500, 600);
+    turn(250, 500);
+    collect();
+    set_servo_position(armservo, 750);
+    msleep(100);
+    set_servo_position(patservo, patdown);
+    msleep(100);
+    
+    //Place unit in utility zone
+    turn(500, 300);
+    move(1500, 2300);
+    turn(1500, 600);
+    lowerarm();
+    set_servo_position(clawservo, clawclosed);
+    for(i = 0; i < 1000; i++)
+    {
+        if(analog(etsensor) < 2700)
+        {
+            mav(leftmotor, 1300);
+            mav(rightmotor, 1500);
+        } 
+        else if(analog(etsensor) > 2700)
+        {
+            mav(leftmotor, 1500);
+            mav(rightmotor, 1000);
+        }
+    }
+    set_servo_position(armservo, armup);
+    move(1500, 1600);
+    move(500, 1000);
+    set_servo_position(patservo, patup);
+    msleep(100);
+    move(-1500, 500);
+    //*/
+}
