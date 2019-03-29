@@ -1,0 +1,29 @@
+int main()
+{   
+    enable_servos();
+    //wait_for_light(light);
+    //shut_down_in(115);
+
+    //Start of actions--------------------------------
+    //Moves until fire station black tape
+    msmove(1000, 2000);
+    while(analog(1) < 1000)
+    {
+        mav(leftmotor, 1000);
+        mav(rightmotor, 970);
+    }
+    msleep (1000); // LET ROBOT REST BETWEEN DOING THINGS
+    
+    //Turns and aligns with pipe
+    msmove(-1000, 150);
+    msturn(1500, 600);
+    msmove(-1000, 1800);
+    
+    //Goes until black line
+    msturn(500, 200);
+    raisearm();
+    while(analog(ltophat) < 1500)
+    {
+        mav(leftmotor, 1000);
+        mav(rightmotor, 1000);
+    }
