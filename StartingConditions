@@ -1,0 +1,17 @@
+int main()
+
+{   
+
+    //wait_for_light(light);
+
+    shut_down_in(119);
+
+    enable_servos();
+
+
+
+    //Start of actions--------------------------------
+    compcodepart1();
+    
+    //Align with pipe and black tape
+    move(-1500, 2000);
